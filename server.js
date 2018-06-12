@@ -6,10 +6,8 @@ const knex = require('knex');
 const postgres = knex({
   client: 'pg',
   connection: {
-    host : '127.0.0.1',
-    user : 'postgres',
-    password : 'lamd3pz4i',
-    database : 'weightracker'
+    connectionString : process.env.DATABASE_URL,
+  	ssl: true,
   }
 });
 postgres.select('*').from('users').then(data => {
