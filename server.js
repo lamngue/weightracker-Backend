@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt-nodejs');
 const cors = require('cors');
 const knex = require('knex');
+const {Client} = require('pg');
+
 const postgres = knex({
   client: 'pg',
   connection: {
