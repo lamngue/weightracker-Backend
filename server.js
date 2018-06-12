@@ -19,27 +19,9 @@ const app = express();
 app.use(bodyParser.json())
 app.use(cors());
 
-const database = {
-	users: [{
-		id: '123',
-		name: 'John',
-		email: 'john@gmail.com',
-		password: 'cookies',
-		weightsOvertime: [],
-		joined: new Date()
-	},
-	{
-		id: '124',
-		name: 'Sally',
-		email: 'sally@gmail.com',
-		password: 'bananas',
-		weightsOvertime: [],
-		joined: new Date()
-	}]
-}
 
 app.get("/", (req,res) => {
-	res.send(database.users)
+	res.send('It is working')
 })
 app.post('/signin',(req,res)=>{
 	postgres.select('email','hash').from('login')
