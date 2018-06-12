@@ -2,9 +2,22 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt-nodejs');
 const cors = require('cors');
+const knex = require('knex');
+const postgres = knex({
+  client: 'pg',
+  connection: {
+    host : '127.0.0.1',
+    user : 'postgres',
+    password : 'lamd3pz4i',
+    database : 'weightracker'
+  }
+});
+postgres.select('*').from('users').then(data => {
+	console.log(data);
+})
 const app = express();
 app.use(bodyParser.json())
-app.use(cors())
+app.use(cors());
 
 const database = {
 	users: [{
@@ -29,52 +42,103 @@ app.get("/", (req,res) => {
 	res.send(database.users)
 })
 app.post('/signin',(req,res)=>{
-	if(req.body.email === database.users[0].email&&
-		req.body.password === database.users[0].password||(req.body.email === database.users[1].email&&
-		req.body.password === database.users[1].password)){
-		res.json(database.users[0])
-	}else{
-		res.status(400).json('error logging in')
-	}
+	postgres.select('email','hash').from('login')
+	.where('email', '=', req.body.email)
+	.then(data => {
+		let isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+		if(isValid){
+			return postgres.select('*').from('users')
+			.where('email', '=', req.body.email)
+			.then(user => {
+				console.log(user[0])
+				res.json(user[0])
+			})
+			.catch(err => res.status(400).json('Unable to get user'))
+		}else{
+			res.status(400).json('Wrong Credentials')
+		} 
+	})
+	.catch(err => res.status(400).json('Wrong Credentials'))
 })
 app.post("/register",(req,res)=>{
 	const {email,name,password} = req.body;
-	database.users.push({
-		id: '125',
-		name: name,
-		email: email,
-		password: password,
-		weightsOvertime: [],
-		joined: new Date()
+	if(!email || !name || !password){
+		return res.status(400).json('Incorrect form submission')
+	}
+	const hash = bcrypt.hashSync(password);
+	postgres.transaction((trx) => {
+		trx.insert({
+			hash: hash,
+			email: email
+		})
+		.into('login')
+		.returning('email')
+		.then(logInEmail => {
+			return trx('users')
+			.returning('*')
+			.insert({
+				email: logInEmail[0],
+				name: name,
+				joined: new Date()
+			}).then(user => {
+				console.log(user[0])
+				res.json(user[0]);
+			}).catch(err => res.status(400).json('unable to register'))
+		})
+		.then(trx.commit)
+		.catch(trx.rollback);
 	})
-	res.json(database.users[database.users.length-1])
+	.catch(err => res.status(400).json('unable to register'))
 })
+
 app.get("/profile/:id",(req,res)=>{
 	const {id} = req.params;
-	let found = false;
-	database.users.forEach(user=>{
-		if(user.id == id){
-			found = true;
-			return res.json(user)
-		}
-	})
-	if(!found){
-		res.status(400).json('not found')
-	}
+	postgres.select('*').from('users').where({
+		id: id
+	}).then(user => {
+		if(user.length){
+		res.json(user[0])
+	}else{res.status(400).json('not found')}})
+	.catch(err => res.status(400).json('not found'));
+
 })
 app.put("/addWeight",(req,res)=>{
 	const {id,data} = req.body;
-	let found = false;
-	database.users.forEach(user=>{
-		if(user.id == id){
-			found = true;
-			user.weightsOvertime.push(data);
-			return res.json(user.weightsOvertime)
-		}
+	postgres('users')
+	.where('id','=',id)
+	.update({
+		weightsovertime: knex.raw('array_append(weightsovertime, ?)', [data.weight])
 	})
-	if(!found){
-		res.status(400).json('not found')
-	}
+	.returning('weightsovertime')
+	.then(response => {
+		res.json(response[0])
+	})
+	.catch((err) => res.status(400).json('unable to get entries'))
+})
+
+app.put("/addDate",(req,res) => {
+	const {id,data} = req.body;
+	postgres('users')
+	.where('id','=',id)
+	.update({
+		datesovertime: knex.raw('array_append(datesovertime, ?)', [data.date])
+	})
+	.returning('datesovertime')
+	.then(response => {
+		res.json(response[0])
+	})
+	.catch((err) => res.status(400).json('unable to get entries'))
+})
+app.delete("/delete",(req,res) => {
+	const {email} = req.body;
+	postgres('users')
+	.where('email', '=', email)
+	.del()
+	.returning('*')
+	.then(() => {
+		res.json('Account Deleted')
+	})
+	.catch(err => res.status(400).json('unable to find user'))
 })
 
 app.listen(3000,() => {
