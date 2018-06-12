@@ -66,7 +66,7 @@ app.post("/register",(req,res)=>{
 			}).then(user => {
 				console.log(user[0])
 				res.json(user[0]);
-			}).catch(err => res.status(400).json('unable to register'))
+			})
 		})
 		.then(trx.commit)
 		.catch(trx.rollback);
