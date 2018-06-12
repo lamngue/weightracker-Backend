@@ -12,6 +12,7 @@ const postgres = knex({
   	ssl: true,
   }
 });
+postgres.connect();
 postgres.select('*').from('users').then(data => {
 	console.log(data);
 })
