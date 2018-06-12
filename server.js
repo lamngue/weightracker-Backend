@@ -8,7 +8,7 @@ const {Client} = require('pg');
 const postgres = knex({
   client: 'pg',
   connection: {
-    connection : process.env.POSTGRES_URL,
+    connectionString : process.env.DATABASE_URL,
   	ssl: true,
   }
 });
