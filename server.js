@@ -52,7 +52,7 @@ app.post("/register",(req,res)=>{
 	postgres.transaction((trx) => {
 		trx.insert({
 			hash: hash,
-			email: req.body.email
+			email: email
 		})
 		.into('login')
 		.returning('email')
@@ -61,7 +61,7 @@ app.post("/register",(req,res)=>{
 			.returning('*')
 			.insert({
 				email: logInEmail[0],
-				name: req.body.name,
+				name: name,
 				joined: new Date()
 			}).then(user => {
 				console.log(user[0])
