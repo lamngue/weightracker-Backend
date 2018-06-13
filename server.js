@@ -60,9 +60,9 @@ app.post("/register",(req,res)=>{
 			return trx('users')
 			.returning('*')
 			.insert({
-				email: `${logInEmail[0]}`,
-				name: `${req.body.name}`,
-				joined: `${new Date()}`
+				email: logInEmail[0],
+				name: req.body.name,
+				joined: new Date()
 			}).then(user => {
 				console.log(user[0])
 				res.json(user[0]);
